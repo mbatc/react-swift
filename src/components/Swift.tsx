@@ -114,8 +114,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             console.log("Hello World");
 
             (async () => {
-
-                const channel = await parent.google.colab.kernel.comms.open('swift_channel', 'Connected', null);
+                const channel = await parent["google"].colab.kernel.comms.open('swift_channel', 'Connected', null);
 
                 for await (const message of channel.messages) {
                     console.log(message.data)

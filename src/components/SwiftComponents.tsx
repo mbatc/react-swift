@@ -85,7 +85,7 @@ export const Camera = (props: ICameraProps): JSX.Element => {
 }
 
 const PrimativeShapes = (props: IShapeProps): JSX.Element => {
-    const cyl = useRef<THREE.CylinderBufferGeometry>()
+    const cyl = useRef<THREE.CylinderGeometry>()
 
     // If shape is a cylinder, rotatex by 90 deg because threejs
     // does clyinder along the y axis, not the z axis
@@ -218,12 +218,12 @@ const AxesShape = (props: IShapeProps): JSX.Element => {
 }
 
 const ArrowShape = (props: IShapeProps): JSX.Element => {
-    const shape = useRef<THREE.Mesh>()
     const head_length = props.length * props.head_length
     const head_radius = head_length * props.head_radius
     const body_length = (1 - props.head_length) * props.length
 
     if (props.radius === 0) {
+        const shape = useRef<THREE.Mesh>()
         return (
             <mesh
                 ref={shape}
@@ -244,9 +244,10 @@ const ArrowShape = (props: IShapeProps): JSX.Element => {
             </mesh>
         )
     } else {
+        const grp = useRef<THREE.Group>()
         return (
             <group
-                ref={shape}
+                ref={grp}
                 position={[props.t[0], props.t[1], props.t[2]]}
                 quaternion={[props.q[0], props.q[1], props.q[2], props.q[3]]}
                 name={'loaded'}

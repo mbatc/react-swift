@@ -28,6 +28,7 @@ export default {
         url(),
         postcss({
             modules: true,
+            extract: true
         }),
         nodeResolve()
       ],

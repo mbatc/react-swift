@@ -3,16 +3,16 @@ import { useLoader } from '@react-three/fiber'
 import * as THREE from 'three'
 
 import { IShapeProps } from './SwiftComponents'
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
-import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
-import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader'
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js'
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js'
 // import { VRMLLoader } from 'three/examples/jsm/loaders/VRMLLoader'
-import { PCDLoader } from 'three/examples/jsm/loaders/PCDLoader'
-import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader'
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
-import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader'
+import { PCDLoader } from 'three/examples/jsm/loaders/PCDLoader.js'
+import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
+import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js'
 
 const defaultColor = 'hotpink'
 
@@ -140,9 +140,9 @@ const ColladaAsset = (props: IMeshShapeProps): JSX.Element => {
 const OBJAsset = (props: IMeshShapeProps): JSX.Element => {
     const mtlurl = props.url.slice(0, props.url.length - 3) + 'mtl'
     const materials = useLoader(MTLLoader, mtlurl)
-    const model = useLoader(OBJLoader, props.url, (loader: MTLLoader) => {
+    const model = useLoader(OBJLoader, props.url, (loader: OBJLoader) => {
         materials.preload()
-        // loader.setMaterials(materials)
+        loader.setMaterials(materials)
     })
 
     useEffect(() => {
