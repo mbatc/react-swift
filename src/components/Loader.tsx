@@ -16,6 +16,29 @@ import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader'
 
 const defaultColor = 'hotpink'
 
+const defaultCreateURLCallback = (url) => {
+    return 'retrieve/' + url;
+}
+
+let createURLCallback = defaultCreateURLCallback;
+let revokeURLCallback = (url) => {};
+
+export function setCreateURLCallback(onFetch) {
+    if (onFetch !== undefined) {
+        createURLCallback = onFetch;
+    } else {
+        createURLCallback = defaultCreateURLCallback;
+    }
+}
+
+export function setRevokeURLCallback(onRevoke) {
+    if (onRevoke !== undefined) {
+        revokeURLCallback = onRevoke;
+    } else {
+        revokeURLCallback = (url) => {};
+    }
+}
+
 export interface IMeshShapeProps extends IShapeProps {
     url: string
 }
@@ -123,7 +146,6 @@ const ColladaAsset = (props: IMeshShapeProps): JSX.Element => {
         scene.children.forEach((child) => {
             traverseChildren(child, props.opacity, true)
         })
-
         scene.name = 'loaded'
     }, [scene])
 
@@ -296,13 +318,12 @@ const SVGAsset = React.memo((props: IMeshShapeProps): JSX.Element => {
 
 const Loader = (props: IShapeProps): JSX.Element => {
     const ext = props.filename.split('.').pop().toLowerCase()
-    let url = props.filename
 
-    url = 'retrieve/' + url
+    const url = createURLCallback(props.filename)
 
     switch (ext) {
         case 'stl':
-            return <STLAsset url={url} {...props} />
+            return <STLAsset url={url} {...props}  />
             break
 
         case 'gltf':

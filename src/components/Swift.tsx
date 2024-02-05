@@ -7,6 +7,7 @@ import React, {
     useRef,
     Suspense,
     useCallback,
+    useMemo
 } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import Capture, { ICaptureProps } from './Recorder'
@@ -26,6 +27,7 @@ import {
 
 import Controls from './Controls'
 import { Vector3 } from 'three'
+import { setCreateURLCallback, setRevokeURLCallback } from './Loader'
 
 interface IMeshCollection {
     meshes: IShapeProps[]
@@ -98,65 +100,124 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
         let port = props.port
 
-        const server_params = window.location.search.substring(1).split('&')
-        console.log(server_params)
-
-        if (port === 0) {
-            port = parseInt(server_params[0])
-        }
-
-        if (port === null) {
-            socket = false
-        }
-
-        if (port == 12345) {
-            // We're going with jupyter kernel communications
-            console.log("Hello World");
-
-            (async () => {
-
-                const channel = await parent.google.colab.kernel.comms.open('swift_channel', 'Connected', null);
-
-                for await (const message of channel.messages) {
-                    console.log(message.data)
-                    channel.send({ 'data': 2 })
-                }
-
-                console.log("I think it's closed")
-            })()
-
-
-        } else {
-            // We're going with web sockets
-
-            let ws_url = 'ws://localhost:' + port + '/'
-
-            if (socket) {
-                ws.current = new WebSocket(ws_url)
-                ws.current.onopen = () => {
-                    ws.current.onclose = () => {
-                        setTimeout(() => {
-                            window.close()
-                        }, 5000)
+        const pyjsPrefix = "?pyjs.";
+        const isEmbedded = window.location.search.startsWith(pyjsPrefix);
+        if (!isEmbedded) {
+            const server_params = window.location.search.substring(1).split('&')
+            console.log(server_params)
+            
+            if (port === 0) {
+                port = parseInt(server_params[0])
+            }
+        
+            if (port === null) {
+                socket = false
+            }
+        
+            if (port == 12345) {
+                // We're going with jupyter kernel communications
+                console.log("Hello World");
+            
+                (async () => {
+                
+                    const channel = await parent.google.colab.kernel.comms.open('swift_channel', 'Connected', null);
+                
+                    for await (const message of channel.messages) {
+                        console.log(message.data)
+                        channel.send({ 'data': 2 })
                     }
-
-                    ws.current.send('Connected')
-                    setConnected(true)
+                
+                    console.log("I think it's closed")
+                })()
+            
+            
+            } else {
+                // We're going with web sockets
+            
+                let ws_url = 'ws://localhost:' + port + '/'
+            
+                if (socket) {
+                    ws.current = new WebSocket(ws_url)
+                    ws.current.onopen = () => {
+                        ws.current.onclose = () => {
+                            setTimeout(() => {
+                                window.close()
+                            }, 5000)
+                        }
+                    
+                        ws.current.send('Connected')
+                        setConnected(true)
+                    }
+                    wsEvent.on('wsSwiftTx', (data) => {
+                        console.log(data)
+                        ws.current.send(data)
+                    })
                 }
-                wsEvent.on('wsSwiftTx', (data) => {
-                    console.log(data)
-                    ws.current.send(data)
-                })
             }
-        }
+        
+            if (ws.current) {
+                ws.current.onmessage = (event) => {
+                    const eventdata = JSON.parse(event.data)
+                    const func = eventdata[0]
+                    const data = eventdata[1]
+                    wsEvent.emit('wsRx', func, data)
+                }
+            }
+        } else {
+            // Bind callbacks to Python impl via pyjs.
+            // Currently the entry-point name is passed to Swift via the URL search parameter.
+            // I feel like this is not such a great idea but works for now.
+            let entryPoint = window.location.search.substring(6);
 
-        if (ws.current) {
-            ws.current.onmessage = (event) => {
-                const eventdata = JSON.parse(event.data)
-                const func = eventdata[0]
-                const data = eventdata[1]
-                wsEvent.emit('wsRx', func, data)
-            }
+            const txCallback = window.parent[entryPoint](
+                () => { 
+                    console.log('SwiftPyJS connected')
+                    setConnected(true)
+                },
+            
+                () => { 
+                    console.log('SwiftPyJS closing');
+                },
+            
+                msg => {
+                    console.log(`JS received: ${msg}`);
+                    const eventdata = JSON.parse(msg);
+                    const func = eventdata[0];
+                    const data = eventdata[1];
+                    wsEvent.emit('wsRx', func, data);
+                    console.log(`Emitted wsRx event`);
+                }
+            );
+
+            console.log(txCallback)
+
+            wsEvent.on('wsSwiftTx', async (data) => {
+                console.log(data);
+                await txCallback(data);
+                console.log('called txCallback');
+            })
+
+            const urlObjectLookup = new Map<string, string>();
+
+            setCreateURLCallback(
+                url => {
+                    if (urlObjectLookup.has(url)) {
+                        let mappedUrl = urlObjectLookup.get(url);
+                        console.log(`Returning cached url ${url} => ${mappedUrl}`)
+                        return mappedUrl;
+                    }
+                    else {
+                        let bytes = window.parent.pyjs.FS.readFile(url);
+                        let blob  = new Blob([bytes]);
+                        let mappedUrl = URL.createObjectURL(blob);
+                        urlObjectLookup.set(url, mappedUrl);
+                        console.log(`Mapped new URL ${url} => ${mappedUrl}`)
+                        return mappedUrl;
+                    }
+                }
+            );
+
+            setRevokeURLCallback(url => URL.revokeObjectURL(url))
         }
     }, [])
 

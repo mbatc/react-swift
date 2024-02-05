@@ -25,6 +25,19 @@ class Example extends Component {
 }
 ```
 
+## Building
+
+To build this package you will need to use nodejs v14. I recommend using [nvm](https://github.com/nvm-sh/nvm) or [micromamba](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html#micromamba) to manage installed versions.
+
+With nodejs (v14.*) and npm (v6.*), run,
+
+```sh
+npm install
+npm run build
+```
+
+This will output the build package to the `./dist/` folder.
+
 ## License
 
 MIT © [jhavl](https://github.com/jhavl)
